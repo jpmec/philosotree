@@ -44,7 +44,8 @@ clean:
 	rm -f $(TARGET)
 
 test:
-	./$(TARGET) www.boost.org /LICENSE_1_0.txt
+	./$(TARGET) en.wikipedia.org "/w/api.php?action=query&format=json&prop=links&titles=google"
+
 
 clear:
 	clear
