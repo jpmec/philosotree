@@ -1,6 +1,7 @@
 
 
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <set>
 #include <string>
@@ -8,9 +9,12 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 using namespace std;
 using boost::asio::ip::tcp;
-
+using boost::property_tree::ptree;
 
 
 class client
@@ -19,7 +23,8 @@ public:
   client(boost::asio::io_service& io_service,
       const std::string& server, const std::string& path)
     : resolver_(io_service),
-      socket_(io_service)
+      socket_(io_service),
+      verbose_(false)
   {
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
@@ -53,7 +58,7 @@ private:
     }
     else
     {
-      std::cout << "Error: " << err.message() << "\n";
+      std::cerr << "Error: " << err.message() << "\n";
     }
   }
 
@@ -85,7 +90,7 @@ private:
     }
     else
     {
-      std::cout << "Error: " << err.message() << "\n";
+      std::cerr << "Error: " << err.message() << "\n";
     }
   }
 
@@ -103,7 +108,7 @@ private:
       std::getline(response_stream, status_message);
       if (!response_stream || http_version.substr(0, 5) != "HTTP/")
       {
-        std::cout << "Invalid response\n";
+        std::cerr << "Invalid response\n";
         return;
       }
       if (status_code != 200)
@@ -132,12 +137,21 @@ private:
       std::istream response_stream(&response_);
       std::string header;
       while (std::getline(response_stream, header) && header != "\r")
-        std::cout << header << "\n";
-      std::cout << "\n";
+      {
+        if (this->verbose_)
+        {
+          std::cout << header << "\n";
+        }
+      }
+
+      if (this->verbose_)
+      {
+        std::cout << "\n";
+      }
 
       // Write whatever content we already have to output.
       if (response_.size() > 0)
-        std::cout << &response_;
+        result_ << &response_;
 
       // Start reading remaining data until EOF.
       boost::asio::async_read(socket_, response_,
@@ -147,7 +161,7 @@ private:
     }
     else
     {
-      std::cout << "Error: " << err << "\n";
+      std::cerr << "Error: " << err << "\n";
     }
   }
 
@@ -156,7 +170,7 @@ private:
     if (!err)
     {
       // Write all of the data that has been read so far.
-      std::cout << &response_;
+      result_ << &response_;
 
       // Continue reading remaining data until EOF.
       boost::asio::async_read(socket_, response_,
@@ -166,19 +180,28 @@ private:
     }
     else if (err != boost::asio::error::eof)
     {
-      std::cout << "Error: " << err << "\n";
+      std::cerr << "Error: " << err << "\n";
     }
+  }
+
+  public: string result()
+  {
+    return result_.str();
   }
 
   tcp::resolver resolver_;
   tcp::socket socket_;
   boost::asio::streambuf request_;
   boost::asio::streambuf response_;
+  ostringstream result_;
+  bool verbose_;
 };
 
 
 int main(int argc, char* argv[])
 {
+
+
   // key is url, value is set of urls contained by key url
   map< string, set<string> > forward_links;
 
@@ -187,13 +210,6 @@ int main(int argc, char* argv[])
 
   try
   {
-    cout << __FILE__ << endl;
-
-    for (int i = 0; i < argc; ++i)
-    {
-      cout << argv[i] << endl;
-    }
-
     if (argc != 3)
     {
       std::cout << "Usage: async_client <server> <path>\n";
@@ -206,6 +222,26 @@ int main(int argc, char* argv[])
     boost::asio::io_service io_service;
     client c(io_service, argv[1], argv[2]);
     io_service.run();
+
+    ptree pt;
+
+    istringstream json_stream(c.result());
+    read_json(json_stream, pt);
+
+    pt = pt.get_child("query");
+    pt = pt.get_child("pages");
+
+    for (ptree::iterator i = pt.begin(); i != pt.end(); ++i)
+    {
+      ptree links =  i->second.get_child("links");
+
+      for (ptree::iterator l = links.begin(); l != links.end(); ++l)
+      {
+        cout << l->second.get_child("title").get_value<string>() << endl;
+      }
+    }
+
+
   }
   catch (std::exception& e)
   {
