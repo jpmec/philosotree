@@ -44,7 +44,7 @@ clean:
 	rm -f $(TARGET)
 
 test:
-	./$(TARGET) en.wikipedia.org "/w/api.php?action=query&format=json&prop=links&titles=google" > test_output.txt
+	./$(TARGET) en.wikipedia.org "/w/api.php?action=query&format=json&prop=links&pllimit=max&titles=google" > test_output.txt
 
 
 clear:
