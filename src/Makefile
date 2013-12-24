@@ -1,5 +1,5 @@
 TARGET = philosotree
-CC = clang++
+CC = g++
 CC_FLAGS = -Wall
 
 
