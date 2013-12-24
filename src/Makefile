@@ -44,7 +44,7 @@ clean:
 	rm -f $(TARGET)
 
 test:
-	./$(TARGET)
+	./$(TARGET) www.boost.org /LICENSE_1_0.txt
 
 clear:
 	clear
