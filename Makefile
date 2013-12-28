@@ -56,7 +56,7 @@ endif
 all: clear clean $(TARGET) test
 
 %: %.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $*.cpp -o $*
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $*.cpp -o ./bin/$*
 
 clean:
 	rm -f $(TARGET)

@@ -1,2 +1,8 @@
+syntax: glob
+
+.DS_Store
+
 philosotree
 test_output.txt
+
+bin/
