@@ -8,40 +8,43 @@
 
 class WikiLinkWeb : public GenericSpiderWeb<std::string>
 {
-	typedef GenericSpiderWeb<std::string> super;
+  typedef GenericSpiderWeb<std::string> super;
 
 public:
-	void connect(const char* from, const char* to)
-  	{
-  		const Node from_node(from);
-  		const Node to_node(to);
+  void connect(const char* from, const char* to)
+  {
+    const Node from_node(from);
+    const Node to_node(to);
 
-  		super::connect(from_node, to_node);
-  	}
-
-  	void connect(const std::string& from, const std::string& to)
-  	{
-  		super::connect(from, to);
-  	}
-
-  	NodeSharedPtr find(const std::string& value)
-  	{
-  		return super::find(value);
-  	}
+    super::connect(from_node, to_node);
+  }
 
 
- 	NodeSharedPtrList find(const char* from, const char* to)
-  	{
-  		const Node from_node(from);
-  		const Node to_node(to);
+  void connect(const std::string& from, const std::string& to)
+  {
+    super::connect(from, to);
+  }
 
-  		return super::find(from_node, to_node);
-  	}
 
-  	NodeSharedPtrList find(const std::string& from, const std::string& to)
-  	{
-  		return super::find(from, to);
-  	} 	
+  NodeSharedPtr find(const std::string& value) const
+  {
+    return super::find(value);
+  }
+
+
+  NodeSharedPtrList find(const char* from, const char* to) const
+  {
+    const Node from_node(from);
+    const Node to_node(to);
+
+    return super::find(from_node, to_node);
+  }
+
+
+  NodeSharedPtrList find(const std::string& from, const std::string& to) const
+  {
+    return super::find(from, to);
+  }   
 };
 
 

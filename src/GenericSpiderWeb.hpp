@@ -47,13 +47,13 @@ public:
   }
 
 
-  const NodeSet& getNodes()
+  const NodeSet& getNodes() const
   {
     return nodes;
   }
 
 
-  const DirectedGraph& getGraph()
+  const DirectedGraph& getGraph() const
   {
     return graph;
   }
@@ -80,7 +80,7 @@ public:
   }
 
 
-  NodeSharedPtr find(const Node& node)
+  NodeSharedPtr find(const Node& node) const
   {
     typename NodeSet::iterator i = std::find_if(
       nodes.begin(), 
@@ -95,6 +95,13 @@ public:
     {
       return NodeSharedPtr();      
     }    
+  }
+
+
+  bool contains(const Node& node) const
+  {
+    NodeSharedPtr result = find(node);
+    return (0 != result.get());   
   }
 
 
@@ -127,7 +134,7 @@ public:
 
 
   // Return a list of nodes from the given from_node to the given to_node.
-  NodeSharedPtrList find(const Node& from_node, const Node& to_node)
+  NodeSharedPtrList find(const Node& from_node, const Node& to_node) const
   {
     NodeSharedPtrList result;
 
@@ -189,17 +196,17 @@ protected:
 
 
   
-  NodeSharedPtrList find(const NodeSharedPtr& from_node_ptr, const NodeSharedPtr& to_node_ptr)
+  NodeSharedPtrList find(const NodeSharedPtr& from_node_ptr, const NodeSharedPtr& to_node_ptr) const
   {
     NodeSharedPtrList result;
 
-    typename DirectedGraph::iterator graph_from = graph.find(from_node_ptr);
+    typename DirectedGraph::const_iterator graph_from = graph.find(from_node_ptr);
     if (graph_from == graph.end())
     {
       return result;
     }
 
-    typename DirectedGraph::iterator graph_to = graph.find(to_node_ptr);
+    typename DirectedGraph::const_iterator graph_to = graph.find(to_node_ptr);
     if (graph_to == graph.end())
     {
       return result;

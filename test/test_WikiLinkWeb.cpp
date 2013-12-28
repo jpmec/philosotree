@@ -88,17 +88,26 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_find_1)
 	{
 		WikiLinkWeb::NodeSharedPtr ptr = web.find(expected1);
 		BOOST_CHECK(*ptr == expected1);	
+		BOOST_CHECK(web.contains(expected1));
 	}
 
 	{
 		WikiLinkWeb::NodeSharedPtr ptr = web.find(expected2);
-		BOOST_CHECK(*ptr == expected2);	
+		BOOST_CHECK(*ptr == expected2);
+		BOOST_CHECK(web.contains(expected2));			
 	}	
 
 	{
 		WikiLinkWeb::NodeSharedPtr ptr = web.find(string("not here"));
 		BOOST_CHECK(ptr.get() == 0);
+		BOOST_CHECK(!web.contains(string("not here")));		
 	}
+
+	{
+		WikiLinkWeb::NodeSharedPtr ptr = web.find("hello");
+		BOOST_CHECK(*ptr == "hello");	
+		BOOST_CHECK(web.contains("hello"));
+	}	
 }
 
 
