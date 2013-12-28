@@ -13,11 +13,14 @@ using boost::asio::ip::tcp;
 class HttpGetter
 {
 public:
-  HttpGetter(boost::asio::io_service& io_service,
-      const std::string& server, const std::string& path)
+  HttpGetter(boost::asio::io_service& io_service)
     : resolver_(io_service),
       socket_(io_service),
       verbose_(false)
+  {
+  }
+
+  virtual void get(const std::string& server, const std::string& path)
   {
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
@@ -37,7 +40,12 @@ public:
           boost::asio::placeholders::iterator));
   }
 
-private:
+  std::string result()
+  {
+    return result_.str();
+  }
+
+protected:
   void handle_resolve(const boost::system::error_code& err,
       tcp::resolver::iterator endpoint_iterator)
   {
@@ -177,11 +185,9 @@ private:
     }
   }
 
-  public: string result()
-  {
-    return result_.str();
-  }
 
+
+private:
   tcp::resolver resolver_;
   tcp::socket socket_;
   boost::asio::streambuf request_;
