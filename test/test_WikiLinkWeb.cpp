@@ -269,7 +269,13 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_find_2 )
 			result.pop_front();
 
 			BOOST_CHECK(*result.front() == "you");
-		}								
+		}
+
+		{
+			web.erase("me");
+			WikiLinkWeb::NodeSharedPtrList result = web.find("hello", "you");
+			BOOST_CHECK(0 == result.size());
+		}										
 	}				
 }
 
