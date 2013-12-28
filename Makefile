@@ -29,16 +29,18 @@ BOOST_LIB=$(LINUX_BOOST_LIB)
 endif
 
 
-CC = g++
-CC_FLAGS = -Wall -O3
+
 INCLUDE_FLAGS = -I$(BOOST_INCLUDE_PATH) -I./src/
-LIB_FLAGS = -L$(BOOST_LIB_PATH) -l$(BOOST_LIB)
+
+CXX = g++
+CXXFLAGS = -Wall -O3 $(INCLUDE_FLAGS)
+LDFLAGS = -L$(BOOST_LIB_PATH) -l$(BOOST_LIB)
 
 
 all: clear clean $(TARGET) test
 
 %: %.cpp
-	$(CC) $(CC_FLAGS) $(INCLUDE_FLAGS) $(LIB_FLAGS) $*.cpp -o $*
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $*.cpp -o $*
 
 clean:
 	rm -f $(TARGET)
