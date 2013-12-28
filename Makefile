@@ -30,8 +30,8 @@ endif
 
 
 CC = g++
-CC_FLAGS = -Wall
-INCLUDE_FLAGS = -I$(BOOST_INCLUDE_PATH)
+CC_FLAGS = -Wall -O3
+INCLUDE_FLAGS = -I$(BOOST_INCLUDE_PATH) -I./src/
 LIB_FLAGS = -L$(BOOST_LIB_PATH) -l$(BOOST_LIB)
 
 
@@ -44,7 +44,7 @@ clean:
 	rm -f $(TARGET)
 
 test:
-	./$(TARGET) en.wikipedia.org "/w/api.php?action=query&format=json&prop=links&pllimit=max&titles=google" > test_output.txt
+	./$(TARGET) Kevin_Bacon Philosophy > test_output.txt
 
 
 clear:

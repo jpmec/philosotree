@@ -38,6 +38,9 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_insert)
 
 		const WikiLinkWeb::NodeSet& nodes = web.getNodes();
 		BOOST_CHECK(1 == nodes.size());
+
+		const WikiLinkWeb::DirectedGraph& graph = web.getGraph();
+		BOOST_CHECK(1 == graph.size());
 	}
 
 	// add second unique node
@@ -49,6 +52,9 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_insert)
 
 		const WikiLinkWeb::NodeSet& nodes = web.getNodes();
 		BOOST_CHECK(2 == nodes.size());
+
+		const WikiLinkWeb::DirectedGraph& graph = web.getGraph();
+		BOOST_CHECK(2 == graph.size());		
 	}
 
 	// add third non-unique node
@@ -60,6 +66,9 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_insert)
 
 		const WikiLinkWeb::NodeSet& nodes = web.getNodes();
 		BOOST_CHECK(2 == nodes.size());
+
+		const WikiLinkWeb::DirectedGraph& graph = web.getGraph();
+		BOOST_CHECK(2 == graph.size());		
 	}					
 }
 
@@ -80,6 +89,11 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_find)
 	}
 
 	{
+		WikiLinkWeb::NodeSharedPtr ptr = web.find(expected2);
+		BOOST_CHECK(*ptr == expected2);	
+	}	
+
+	{
 		WikiLinkWeb::NodeSharedPtr ptr = web.find(string("not here"));
 		BOOST_CHECK(ptr.get() == 0);
 	}
@@ -97,16 +111,22 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_erase)
 	web.insert(expected2);
 
 	const WikiLinkWeb::NodeSet& nodes = web.getNodes();
+	const WikiLinkWeb::DirectedGraph& graph = web.getGraph();
+
 	BOOST_CHECK(2 == nodes.size());
+	BOOST_CHECK(2 == graph.size());
 
 	web.erase(expected1);
 	BOOST_CHECK(1 == nodes.size());	
+	BOOST_CHECK(1 == graph.size());
 
 	web.erase(expected2);
 	BOOST_CHECK(0 == nodes.size());	
+	BOOST_CHECK(0 == graph.size());
 
 	web.erase(expected2);
-	BOOST_CHECK(0 == nodes.size());	
+	BOOST_CHECK(0 == nodes.size());
+	BOOST_CHECK(0 == graph.size());		
 }
 
 
