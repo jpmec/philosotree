@@ -81,3 +81,21 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get_2 )
 		BOOST_CHECK(response.body.size() > 0);
 	}
 }
+
+
+BOOST_AUTO_TEST_CASE( HttpGetter_get_302 )
+{
+	boost::asio::io_service io_service;
+	HttpGetter getter(io_service);
+
+	getter.get("en.wikipedia.org", "/wiki/Special:Random");
+
+	io_service.run();
+
+
+	HttpGetter::Response response = getter.getResponse();
+
+	BOOST_CHECK(response.status_code = 302);
+
+	//cout << response << endl;
+}
