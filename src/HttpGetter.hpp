@@ -5,14 +5,26 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include "boost/algorithm/string.hpp"
 
 using namespace std;
 using boost::asio::ip::tcp;
+using boost::algorithm::trim;
 
 
 class HttpGetter
 {
 public:
+  struct Response
+  {
+    unsigned int status_code;
+    std::string status_message;
+    std::string http_version;
+    std::string header;
+    std::string body;
+  };
+
+
   HttpGetter(boost::asio::io_service& io_service)
     : resolver_(io_service),
       socket_(io_service),
@@ -25,7 +37,7 @@ public:
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
-    std::ostream request_stream(&request_);
+    std::ostream request_stream(&request_buffer);
     request_stream << "GET " << path << " HTTP/1.0\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
@@ -40,9 +52,10 @@ public:
           boost::asio::placeholders::iterator));
   }
 
-  std::string result()
+  Response getResponse()
   {
-    return result_.str();
+    response.body = result_.str();
+    return response;
   }
 
 protected:
@@ -68,7 +81,7 @@ protected:
     if (!err)
     {
       // The connection was successful. Send the request.
-      boost::asio::async_write(socket_, request_,
+      boost::asio::async_write(socket_, request_buffer,
           boost::bind(&HttpGetter::handle_write_request, this,
             boost::asio::placeholders::error));
     }
@@ -82,10 +95,10 @@ protected:
   {
     if (!err)
     {
-      // Read the response status line. The response_ streambuf will
+      // Read the response status line. The response_buffer streambuf will
       // automatically grow to accommodate the entire line. The growth may be
       // limited by passing a maximum size to the streambuf constructor.
-      boost::asio::async_read_until(socket_, response_, "\r\n",
+      boost::asio::async_read_until(socket_, response_buffer, "\r\n",
           boost::bind(&HttpGetter::handle_read_status_line, this,
             boost::asio::placeholders::error));
     }
@@ -100,13 +113,20 @@ protected:
     if (!err)
     {
       // Check that response is OK.
-      std::istream response_stream(&response_);
+      std::istream response_stream(&response_buffer);
       std::string http_version;
       response_stream >> http_version;
       unsigned int status_code;
       response_stream >> status_code;
       std::string status_message;
       std::getline(response_stream, status_message);
+
+      trim(http_version);
+      trim(status_message);
+      response.status_code = status_code;
+      response.http_version = http_version;
+      response.status_message = status_message;
+
       if (!response_stream || http_version.substr(0, 5) != "HTTP/")
       {
         std::cerr << "Invalid response\n";
@@ -120,7 +140,7 @@ protected:
       }
 
       // Read the response headers, which are terminated by a blank line.
-      boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
+      boost::asio::async_read_until(socket_, response_buffer, "\r\n\r\n",
           boost::bind(&HttpGetter::handle_read_headers, this,
             boost::asio::placeholders::error));
     }
@@ -135,7 +155,7 @@ protected:
     if (!err)
     {
       // Process the response headers.
-      std::istream response_stream(&response_);
+      std::istream response_stream(&response_buffer);
       std::string header;
       while (std::getline(response_stream, header) && header != "\r")
       {
@@ -150,12 +170,14 @@ protected:
         std::cout << "\n";
       }
 
+      response.header = header;
+
       // Write whatever content we already have to output.
-      if (response_.size() > 0)
-        result_ << &response_;
+      if (response_buffer.size() > 0)
+        result_ << &response_buffer;
 
       // Start reading remaining data until EOF.
-      boost::asio::async_read(socket_, response_,
+      boost::asio::async_read(socket_, response_buffer,
           boost::asio::transfer_at_least(1),
           boost::bind(&HttpGetter::handle_read_content, this,
             boost::asio::placeholders::error));
@@ -171,10 +193,10 @@ protected:
     if (!err)
     {
       // Write all of the data that has been read so far.
-      result_ << &response_;
+      result_ << &response_buffer;
 
       // Continue reading remaining data until EOF.
-      boost::asio::async_read(socket_, response_,
+      boost::asio::async_read(socket_, response_buffer,
           boost::asio::transfer_at_least(1),
           boost::bind(&HttpGetter::handle_read_content, this,
             boost::asio::placeholders::error));
@@ -190,10 +212,11 @@ protected:
 private:
   tcp::resolver resolver_;
   tcp::socket socket_;
-  boost::asio::streambuf request_;
-  boost::asio::streambuf response_;
+  boost::asio::streambuf request_buffer;
+  boost::asio::streambuf response_buffer;
   ostringstream result_;
   bool verbose_;
+  Response response;
 };
 
 
