@@ -56,12 +56,11 @@ public:
 
   Response getResponse()
   {
-    response_.body = result_.str();
     return response_;
   }
 
 protected:
-  void handle_resolve(const boost::system::error_code& err,
+  virtual void handle_resolve(const boost::system::error_code& err,
       tcp::resolver::iterator endpoint_iterator)
   {
     if (!err)
@@ -78,7 +77,7 @@ protected:
     }
   }
 
-  void handle_connect(const boost::system::error_code& err)
+  virtual void handle_connect(const boost::system::error_code& err)
   {
     if (!err)
     {
@@ -93,7 +92,7 @@ protected:
     }
   }
 
-  void handle_write_request(const boost::system::error_code& err)
+  virtual void handle_write_request(const boost::system::error_code& err)
   {
     if (!err)
     {
@@ -110,7 +109,7 @@ protected:
     }
   }
 
-  void handle_read_status_line(const boost::system::error_code& err)
+  virtual void handle_read_status_line(const boost::system::error_code& err)
   {
     if (!err)
     {
@@ -167,7 +166,7 @@ protected:
     }
   }
 
-  void handle_read_headers(const boost::system::error_code& err)
+  virtual void handle_read_headers(const boost::system::error_code& err)
   {
     if (!err)
     {
@@ -206,7 +205,7 @@ protected:
     }
   }
 
-  void handle_read_content(const boost::system::error_code& err)
+  virtual void handle_read_content(const boost::system::error_code& err)
   {
     if (!err)
     {
@@ -219,12 +218,20 @@ protected:
           boost::bind(&HttpGetter::handle_read_content, this,
             boost::asio::placeholders::error));
     }
+    else if (err == boost::asio::error::eof)
+    {
+      onEof();
+    }
     else if (err != boost::asio::error::eof)
     {
       std::cerr << "Error: " << err << "\n";
-    }
+    }    
   }
 
+  virtual void onEof()
+  {
+    response_.body = result_.str();
+  }
 
 
 private:

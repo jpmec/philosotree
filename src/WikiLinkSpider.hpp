@@ -11,21 +11,36 @@
 //#include <boost/bind.hpp>
 
 #include "GenericSpider.hpp"
+#include "WikiLinkGetter.hpp"
 #include "WikiLinkWeb.hpp"
 
 // #include "WikiLinkGetter.hpp"
 
 
-class WikiLinkSpider : public GenericSpider< WikiLinkWeb >
+class WikiLinkSpider : public GenericSpider< WikiLinkWeb, WikiLinkGetter >
 {
-// public:
-//   WikiLinkSpider()
-//   {
-//   }
+  typedef GenericSpider< WikiLinkWeb, WikiLinkGetter > super;
 
-//   virtual ~WikiLinkSpider()
-//   {
-//   }
+public:
+  WikiLinkSpider(WikiLinkWeb& web, WikiLinkGetter& getter)
+  : super(web, getter)
+  {
+    
+  }
+
+  virtual ~WikiLinkSpider()
+  {
+  }
+
+  void crawl(const char* from, const char* to)
+  {
+    const std::string from_str(from);
+    const std::string to_str(to);
+
+    super::crawl(from_str, to_str);
+  }
+
+
 
 //   std::list<std::string> crawlFromTo(const char* from, const char* to)
 //   {
@@ -40,9 +55,10 @@ class WikiLinkSpider : public GenericSpider< WikiLinkWeb >
 //     return findFromTo(from, to);
 //   }
 
-// protected:
-//   WikiLinkSpider(const WikiLinkSpider&);
-//   WikiLinkSpider& operator=(const WikiLinkSpider&);
+protected:
+  WikiLinkSpider();  
+  WikiLinkSpider(const WikiLinkSpider&);
+  WikiLinkSpider& operator=(const WikiLinkSpider&);
 
 //   std::list<std::string> findFromTo(const char* from, const char* to)
 //   {

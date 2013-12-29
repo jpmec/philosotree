@@ -36,19 +36,6 @@ public:
   }  
 
 
-    //pt = pt.get_child("query");
-    //pt = pt.get_child("pages");
-    //
-    //for (ptree::iterator i = pt.begin(); i != pt.end(); ++i)
-    //{
-    //  ptree links =  i->second.get_child("links");
-    //
-    //  for (ptree::iterator l = links.begin(); l != links.end(); ++l)
-    //  {
-    //    cout << l->second.get_child("title").get_value<string>() << endl;
-    //  }
-    //}
-
 private:
   std::string server;
 };

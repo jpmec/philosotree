@@ -40,12 +40,6 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get )
 	BOOST_CHECK(response.http_version == "HTTP/1.0");
 	BOOST_CHECK(response.header.size() > 0);
 	BOOST_CHECK(response.body.size() > 0);
-
-	// cout << response.status_code << endl;
-	// cout << response.status_message << endl;
-	// cout << response.http_version << endl;
-	// cout << response.header << endl;
-	// cout << response.body << endl;
 }
 
 
@@ -79,7 +73,7 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get_2 )
 		BOOST_CHECK(response.http_version == "HTTP/1.0");
 		BOOST_CHECK(response.header.size() > 0);
 		BOOST_CHECK(response.body.size() > 0);
-	}
+	}	
 }
 
 
@@ -97,5 +91,5 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get_302 )
 
 	BOOST_CHECK(response.status_code = 302);
 
-	//cout << response << endl;
+//	cout << response << endl;
 }
