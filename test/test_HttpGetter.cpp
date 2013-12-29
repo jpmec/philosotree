@@ -47,3 +47,37 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get )
 	// cout << response.header << endl;
 	// cout << response.body << endl;
 }
+
+
+
+BOOST_AUTO_TEST_CASE( HttpGetter_get_2 )
+{
+	boost::asio::io_service io_service;
+	HttpGetter getter1(io_service);
+	HttpGetter getter2(io_service);
+
+	getter1.get("www.google.com", "/");
+	getter2.get("www.yahoo.com", "/");
+
+	io_service.run();
+
+	{
+		HttpGetter::Response response = getter1.getResponse();
+
+		BOOST_CHECK(response.status_code = 200);
+		BOOST_CHECK(response.status_message == "OK");
+		BOOST_CHECK(response.http_version == "HTTP/1.0");
+		BOOST_CHECK(response.header.size() > 0);
+		BOOST_CHECK(response.body.size() > 0);
+	}
+
+	{
+		HttpGetter::Response response = getter2.getResponse();
+
+		BOOST_CHECK(response.status_code = 200);
+		BOOST_CHECK(response.status_message == "OK");
+		BOOST_CHECK(response.http_version == "HTTP/1.0");
+		BOOST_CHECK(response.header.size() > 0);
+		BOOST_CHECK(response.body.size() > 0);
+	}
+}
