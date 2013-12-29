@@ -1,7 +1,8 @@
 #ifndef HTTP_GETTER_HPP
 #define HTTP_GETTER_HPP
 
-#include <ostream>
+#include <map>
+#include <iostream>
 #include <string>
 
 #include <boost/asio.hpp>
@@ -21,7 +22,7 @@ public:
     unsigned int status_code;
     std::string status_message;
     std::string http_version;
-    std::string header;
+    std::map<std::string, std::string> header;
     std::string body;
   };
 
@@ -175,8 +176,18 @@ protected:
       std::string header;
       while (std::getline(response_stream, header) && header != "\r")
       {
-          response_.header += header;
-          response_.header += "\n";
+        const size_t pos = header.find(":");
+
+        if (pos == std::string::npos)
+        {
+
+        }
+        else
+        {
+          std::string header_key = header.substr(0, pos);
+          std::string header_value = header.substr(pos + 2, header.size()); 
+          response_.header[header_key] = header_value;
+        }
       }
 
       // Write whatever content we already have to output.
@@ -232,7 +243,12 @@ private:
 std::ostream& operator<<(std::ostream& os, const HttpGetter::Response& response)
 {
   os << response.http_version << " " << response.status_code << " " << response.status_message << std::endl;
-  os << response.header << std::endl;
+
+  for (std::map<std::string, std::string>::const_iterator i = response.header.begin(); i != response.header.end(); ++i)
+  {
+    os << i->first << ": " << i->second << std::endl;    
+  }
+
   os << response.body << std::endl;
   return os;
 }
