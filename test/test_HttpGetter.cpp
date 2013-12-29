@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get_2 )
 }
 
 
-BOOST_AUTO_TEST_CASE( HttpGetter_get_302 )
+BOOST_AUTO_TEST_CASE( HttpGetter_get_2_302 )
 {
 	boost::asio::io_service io_service;
 	HttpGetter getter(io_service);
@@ -90,6 +90,36 @@ BOOST_AUTO_TEST_CASE( HttpGetter_get_302 )
 	HttpGetter::Response response = getter.getResponse();
 
 	BOOST_CHECK(response.status_code = 302);
+
+//	cout << response << endl;
+}
+
+
+
+
+struct PrintFunctorAfterGet : public HttpGetter::AfterGetFunctor
+{
+	void operator()(HttpGetter::Response&) const
+	{
+		cout << "PrintFunctorAfterGet" << endl;
+	}
+};
+
+
+BOOST_AUTO_TEST_CASE( HttpGetter_get_3_callback_functor )
+{
+	boost::asio::io_service io_service;
+	HttpGetter getter(io_service);
+
+	PrintFunctorAfterGet after_get;
+	getter.get("www.google.com", "/", after_get);
+
+	io_service.run();
+
+
+	HttpGetter::Response response = getter.getResponse();
+
+	BOOST_CHECK(response.status_code = 200);
 
 //	cout << response << endl;
 }

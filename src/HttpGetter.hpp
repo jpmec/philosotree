@@ -9,7 +9,6 @@
 #include <boost/bind.hpp>
 #include "boost/algorithm/string.hpp"
 
-using namespace std;
 using boost::asio::ip::tcp;
 using boost::algorithm::trim;
 
@@ -27,14 +26,41 @@ public:
   };
 
 
+  struct AfterGetFunctor : public std::unary_function<Response&, void >
+  {
+    virtual void operator() (Response&) const = 0;
+  };
+
+
   HttpGetter(boost::asio::io_service& io_service)
     : resolver_(io_service),
       socket_(io_service),
-      verbose_(false)
+      verbose_(false),
+      after_get_(NULL)
   {
   }
 
   virtual void get(const std::string& server, const std::string& path)
+  {
+    after_get_ = NULL;
+    request_get(server, path);
+  }
+
+
+  virtual void get(const std::string& server, const std::string& path, AfterGetFunctor& after_get)
+  {
+    after_get_ = &after_get;
+    request_get(server, path);
+  }
+
+
+  Response getResponse()
+  {
+    return response_;
+  }
+
+protected:
+  virtual void request_get(const std::string& server, const std::string& path)
   {
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
@@ -51,15 +77,9 @@ public:
     resolver_.async_resolve(query,
         boost::bind(&HttpGetter::handle_resolve, this,
           boost::asio::placeholders::error,
-          boost::asio::placeholders::iterator));
+          boost::asio::placeholders::iterator));    
   }
 
-  Response getResponse()
-  {
-    return response_;
-  }
-
-protected:
   virtual void handle_resolve(const boost::system::error_code& err,
       tcp::resolver::iterator endpoint_iterator)
   {
@@ -221,6 +241,11 @@ protected:
     else if (err == boost::asio::error::eof)
     {
       onEof();
+
+      if (after_get_)
+      {
+        (*after_get_)(response_);
+      }
     }
     else if (err != boost::asio::error::eof)
     {
@@ -239,9 +264,10 @@ private:
   tcp::socket socket_;
   boost::asio::streambuf request_buffer_;
   boost::asio::streambuf response_buffer_;
-  ostringstream result_;
+  std::ostringstream result_;
   bool verbose_;
   Response response_;
+  AfterGetFunctor* after_get_;
 };
 
 
