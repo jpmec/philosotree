@@ -2,15 +2,19 @@
 #define HTTP_GETTER_HPP
 
 #include <map>
+#include <fstream>
 #include <iostream>
 #include <string>
 
+#include "boost/algorithm/string.hpp"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include "boost/algorithm/string.hpp"
+#include <boost/function.hpp>
 
 using boost::asio::ip::tcp;
 using boost::algorithm::trim;
+
+
 
 
 class HttpGetter
@@ -25,41 +29,28 @@ public:
     std::string body;
   };
 
-
-  struct AfterGetFunctor : public std::unary_function<Response&, void >
-  {
-    virtual void operator() (Response&) const = 0;
-  };
-
-
   HttpGetter(boost::asio::io_service& io_service)
-    : resolver_(io_service),
-      socket_(io_service),
-      verbose_(false),
-      after_get_(NULL)
+    : resolver_(io_service)
+    ,  socket_(io_service)
+    ,  verbose_(false)
   {
+    log(typeid(HttpGetter).name());
   }
 
-  virtual void get(const std::string& server, const std::string& path)
+
+  void get(const std::string& server, const std::string& path, boost::function<void(const Response&)> callback)
   {
-    after_get_ = NULL;
+    after_get_response_ = callback;
     request_get(server, path);
   }
 
 
-  virtual void get(const std::string& server, const std::string& path, AfterGetFunctor& after_get)
+  static void noop(const HttpGetter::Response&)
   {
-    after_get_ = &after_get;
-    request_get(server, path);
-  }
-
-
-  Response getResponse()
-  {
-    return response_;
   }
 
 protected:
+
   virtual void request_get(const std::string& server, const std::string& path)
   {
     // Form the request. We specify the "Connection: close" header so that the
@@ -154,31 +145,10 @@ protected:
         return;
       }
 
-      switch (status_code)
-      {
-        case 200:
-        {
-          // Read the response headers, which are terminated by a blank line.
-          boost::asio::async_read_until(socket_, response_buffer_, "\r\n\r\n",
-              boost::bind(&HttpGetter::handle_read_headers, this,
-                boost::asio::placeholders::error));
-        } break;
-
-        case 302:
-        {
-          // Read the response headers, which are terminated by a blank line.
-          boost::asio::async_read_until(socket_, response_buffer_, "\r\n\r\n",
-              boost::bind(&HttpGetter::handle_read_headers, this,
-                boost::asio::placeholders::error));
-        } break;        
-
-        default:
-        {
-          std::cout << "Response returned with status code ";
-          std::cout << status_code << "\n";
-          return;        
-        }
-      }
+      // Read the response headers, which are terminated by a blank line.
+      boost::asio::async_read_until(socket_, response_buffer_, "\r\n\r\n",
+          boost::bind(&HttpGetter::handle_read_headers, this,
+            boost::asio::placeholders::error));
     }
     else
     {
@@ -241,11 +211,7 @@ protected:
     else if (err == boost::asio::error::eof)
     {
       onEof();
-
-      if (after_get_)
-      {
-        (*after_get_)(response_);
-      }
+      after_get_response_(response_);
     }
     else if (err != boost::asio::error::eof)
     {
@@ -259,6 +225,37 @@ protected:
   }
 
 
+  class FileLogger
+  {
+  public:
+    FileLogger(const std::string& filename)
+    : log_(filename.c_str(), std::fstream::out | std::fstream::app)
+    {
+    }
+
+    FileLogger& operator<<(const std::string& str)
+    {
+      log_ << str << std::endl;
+      return *this;
+    }
+
+  protected:
+    FileLogger();
+    FileLogger(const FileLogger&);
+    FileLogger& operator=(const FileLogger&);
+
+  private:
+    std::ofstream log_;
+  };
+
+  void log(const std::string& str)
+  {
+    std::string filename(__FILE__);
+    filename += ".log.txt";
+    FileLogger log(filename);
+    log << str;
+  }
+
 private:
   tcp::resolver resolver_;
   tcp::socket socket_;
@@ -267,7 +264,7 @@ private:
   std::ostringstream result_;
   bool verbose_;
   Response response_;
-  AfterGetFunctor* after_get_;
+  boost::function<void(const Response&)> after_get_response_;
 };
 
 
@@ -285,5 +282,8 @@ std::ostream& operator<<(std::ostream& os, const HttpGetter::Response& response)
   os << response.body << std::endl;
   return os;
 }
+
+
+
 
 #endif
