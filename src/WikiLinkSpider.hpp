@@ -29,15 +29,19 @@ public:
   , getter_(io_service)
   , links_to_web_(getter_, web, unexplored_)
   {
+    std::cout << "WikiLinkSpider::WikiLinkSpider" << std::endl;
     //getter_.verbose(true);
   }
 
   virtual ~WikiLinkSpider()
   {
+    std::cout << "WikiLinkSpider::~WikiLinkSpider" << std::endl;    
   }
 
   void crawl(const char* from, const char* to)
   {
+    std::cout << "WikiLinkSpider::crawl" << std::endl;
+    
     const std::string from_str(from);
     const std::string to_str(to);
 
@@ -55,20 +59,10 @@ public:
     }
   }
 
-
-
-//   std::list<std::string> crawlFromTo(const char* from, const char* to)
-//   {
-//     std::string link(from);
-
-//     WikiLinkGetter getter(io_service);
-
-//     getter.get(link.c_str());
-
-//     io_service.run();
-
-//     return findFromTo(from, to);
-//   }
+  void verbose(bool v)
+  {
+    getter_.verbose(v);
+  }
 
 protected:
   WikiLinkSpider();  
@@ -82,13 +76,20 @@ protected:
     : getter_(getter)
     , web_(web)
     , unexplored_(unexplored)
-    , get_limit(3)
+    , get_limit(10)
     {
-
+      std::cout << "WikiLinkSpider::LinksToWeb::LinksToWeb" << std::endl; 
+    }
+    
+    virtual ~LinksToWeb()
+    {
+      std::cout << "WikiLinkSpider::LinksToWeb::~LinksToWeb" << std::endl;       
     }
 
     void operator()(const std::set<std::string>& links)
     {
+      std::cout << "WikiLinkSpider::LinksToWeb::operator()" << std::endl;       
+      
       std::set<std::string>::const_iterator i = links.begin();
       for (; i != links.end(); ++i)
       {
@@ -102,10 +103,15 @@ protected:
       if ((0 < get_limit) && unexplored_.size())
       {
         --get_limit;
+        
+        std::cout << "get_limit: " << get_limit << std::endl;
 
         std::set<WikiLinkWeb::NodeSharedPtr>::iterator first = unexplored_.begin();
-        getter_.get((*first)->c_str(), *this);  
-        unexplored_.erase(first);      
+        if (first != unexplored_.end())
+        {
+          getter_.get((*first)->c_str(), *this);
+          unexplored_.erase(first);
+        }
       }
     }
 

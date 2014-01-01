@@ -29,6 +29,8 @@ BOOST_AUTO_TEST_CASE( WikiLinkSpider_crawl )
 	WikiLinkWeb web;
 	WikiLinkSpider spider(io_service, web);
 
+	spider.verbose(true);
+
 	spider.crawl("Kevin Bacon", "Philosopy");
 
 	io_service.run();
