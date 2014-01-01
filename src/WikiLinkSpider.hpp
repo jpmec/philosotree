@@ -28,19 +28,22 @@ public:
   , web_(web)
   , getter_(io_service)
   , links_to_web_(getter_, web, unexplored_)
+  , verbose_(false)
   {
-    std::cout << "WikiLinkSpider::WikiLinkSpider" << std::endl;
-    //getter_.verbose(true);
+    if (verbose_)
+      std::cout << this << " WikiLinkSpider::WikiLinkSpider" << std::endl;
   }
 
   virtual ~WikiLinkSpider()
   {
-    std::cout << "WikiLinkSpider::~WikiLinkSpider" << std::endl;    
+    if (verbose_)
+      std::cout << this << " WikiLinkSpider::~WikiLinkSpider" << std::endl;    
   }
 
   void crawl(const char* from, const char* to)
   {
-    std::cout << "WikiLinkSpider::crawl" << std::endl;
+    if (verbose_)
+      std::cout << this << " WikiLinkSpider::crawl" << std::endl;
     
     const std::string from_str(from);
     const std::string to_str(to);
@@ -61,7 +64,9 @@ public:
 
   void verbose(bool v)
   {
+    verbose_ = v;
     getter_.verbose(v);
+    links_to_web_.verbose(v);
   }
 
 protected:
@@ -76,19 +81,23 @@ protected:
     : getter_(getter)
     , web_(web)
     , unexplored_(unexplored)
-    , get_limit(10)
+    , get_limit_(100)
+    , verbose_(false)
     {
-      std::cout << "WikiLinkSpider::LinksToWeb::LinksToWeb" << std::endl; 
+      if (verbose_)
+        std::cout << this << " WikiLinkSpider::LinksToWeb::LinksToWeb" << std::endl;
     }
     
     virtual ~LinksToWeb()
     {
-      std::cout << "WikiLinkSpider::LinksToWeb::~LinksToWeb" << std::endl;       
+      if (verbose_)
+        std::cout << this << " WikiLinkSpider::LinksToWeb::~LinksToWeb" << std::endl;
     }
 
     void operator()(const std::set<std::string>& links)
     {
-      std::cout << "WikiLinkSpider::LinksToWeb::operator()" << std::endl;       
+      if (verbose_)
+        std::cout << this <<  " WikiLinkSpider::LinksToWeb::operator()" << std::endl;
       
       std::set<std::string>::const_iterator i = links.begin();
       for (; i != links.end(); ++i)
@@ -100,25 +109,33 @@ protected:
       }
 
 
-      if ((0 < get_limit) && unexplored_.size())
+      if ((0 < get_limit_) && unexplored_.size())
       {
-        --get_limit;
+        --get_limit_;
         
-        std::cout << "get_limit: " << get_limit << std::endl;
+        if (verbose_)
+          std::cout << "get_limit: " << get_limit_ << std::endl;
 
         std::set<WikiLinkWeb::NodeSharedPtr>::iterator first = unexplored_.begin();
         if (first != unexplored_.end())
         {
-          getter_.get((*first)->c_str(), *this);
+          std::string link = (*first)->c_str();
           unexplored_.erase(first);
+          getter_.get(link.c_str(), *this);
         }
       }
+    }
+
+    void verbose(bool v)
+    {
+      verbose_ = v;
     }
 
     WikiLinkGetter& getter_;
     WikiLinkWeb& web_;
     std::set<WikiLinkWeb::NodeSharedPtr>& unexplored_;
-    int get_limit;    
+    int get_limit_;
+    bool verbose_;    
   };
 
 //   std::list<std::string> findFromTo(const char* from, const char* to)
@@ -138,6 +155,7 @@ private:
   LinksToWeb links_to_web_;
 
   std::set<std::string> links_;
+  bool verbose_;
 
 };
 

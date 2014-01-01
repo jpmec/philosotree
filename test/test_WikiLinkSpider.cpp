@@ -29,16 +29,18 @@ BOOST_AUTO_TEST_CASE( WikiLinkSpider_crawl )
 	WikiLinkWeb web;
 	WikiLinkSpider spider(io_service, web);
 
-	spider.verbose(true);
+	//spider.verbose(true);
 
-	spider.crawl("Kevin Bacon", "Philosopy");
+	spider.crawl("Kevin Bacon", "Philosophy");
 
 	io_service.run();
 
 	BOOST_CHECK(web.size() > 0);
 
 	cout << "web.size(): " << web.size() << endl;
-	cout << web << endl;
+
+	cout << "web.contains(\"Philosophy\"): " << web.contains("Philosophy") << endl;
+	//cout << web << endl;
 
 	// WikiLinkSpider::Web::NodeSharedPtrList result = web.find("Kevin_Bacon", "Philosopy");
 

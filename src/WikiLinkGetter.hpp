@@ -13,10 +13,6 @@
 #include "HttpGetter.hpp"
 
 
-using std::cout;
-using std::endl;
-
-
 
 
 class WikiLinkGetter
@@ -27,7 +23,17 @@ public:
     , server_("en.wikipedia.org")
     , path_("/w/api.php?action=query&format=json&prop=links&pllimit=max&titles=")
     , after_response_(WikiLinkGetter::noop)
+    , verbose_(false)
   {
+    if (verbose_)
+      std::cout << this << " WikiLinkGetter::WikiLinkGetter()" << std::endl;    
+  }
+
+
+  virtual ~WikiLinkGetter()
+  {
+    if (verbose_)    
+      std::cout << this << " WikiLinkGetter::~WikiLinkGetter()" << std::endl;      
   }
 
 
@@ -40,10 +46,13 @@ public:
     http_getter_.get(server_, link_path, after_response_);
   }
 
+
   void verbose(bool v)
   {
+    verbose_ = v;
     http_getter_.verbose(v);
   }
+
 
   static void noop(const std::set<std::string>&)
   {
@@ -58,12 +67,23 @@ protected:
   {
     ResponseToLinks(boost::function<void(const std::set<std::string>&)> after_response)
     : after_response_(after_response)
+    , verbose_(false)
     {
+      if (verbose_)
+        std::cout << this << " WikiLinkGetter::ResponseToLinks::ResponseToLinks()" << std::endl;
+    }
 
+    virtual ~ResponseToLinks()
+    {
+      if (verbose_)
+        std::cout << this << " WikiLinkGetter::ResponseToLinks::~ResponseToLinks()" << std::endl;      
     }
 
     void operator()(const HttpGetter::Response& r)
     {
+      if (verbose_)
+        std::cout << this << " WikiLinkGetter::ResponseToLinks::operator()" << std::endl;   
+
       boost::property_tree::ptree pt;
       std::set<std::string> links_set;
 
@@ -73,70 +93,44 @@ protected:
       //std::cout << r.body << std::endl;
 
 
-      read_json(json_stream, pt);
-      
-      // //pt.get_child("query-continue").get_child("links").get_child("plcontinue");
-
-      pt = pt.get_child("query");
-      pt = pt.get_child("pages");
-      
-      for (boost::property_tree::ptree::iterator i = pt.begin(); i != pt.end(); ++i)
+      try
       {
-        boost::property_tree::ptree links =  i->second.get_child("links");
+        read_json(json_stream, pt);
+        
+        // //pt.get_child("query-continue").get_child("links").get_child("plcontinue");
 
-        for (boost::property_tree::ptree::iterator l = links.begin(); l != links.end(); ++l)
+        pt = pt.get_child("query");
+        pt = pt.get_child("pages");
+        
+        for (boost::property_tree::ptree::iterator i = pt.begin(); i != pt.end(); ++i)
         {
-          links_set.insert(l->second.get_child("title").get_value<std::string>());
+          boost::property_tree::ptree links = i->second.get_child("links");
+
+          for (boost::property_tree::ptree::iterator l = links.begin(); l != links.end(); ++l)
+          {
+            links_set.insert(l->second.get_child("title").get_value<std::string>());
+          }
         }
+      }
+      catch (std::runtime_error& e)
+      {
+        
       }
 
       after_response_(links_set);
     }
 
-    boost::function<void(const std::set<std::string>&)> after_response_;    
+    boost::function<void(const std::set<std::string>&)> after_response_;
+    bool verbose_;    
   };
 
-  // virtual void onEof(void)
-  // {
-  //   super::onEof();
-
-  //   ptree pt;
-
-  //   std::istringstream json_stream(getResponse().body);
-  //   read_json(json_stream, pt);
-    
-  //   //pt.get_child("query-continue").get_child("links").get_child("plcontinue");
-
-  //   pt = pt.get_child("query");
-  //   pt = pt.get_child("pages");
-    
-  //   for (ptree::iterator i = pt.begin(); i != pt.end(); ++i)
-  //   {
-  //     ptree links =  i->second.get_child("links");
-
-  //     for (ptree::iterator l = links.begin(); l != links.end(); ++l)
-  //     {
-  //       links_.insert(l->second.get_child("title").get_value<std::string>());
-  //     }
-  //   }
-
-  //   //cout << getResponse().body << endl;    
-  // }
 
 private:
   HttpGetter http_getter_;
   std::string server_;
   std::string path_;
   ResponseToLinks after_response_;
-
-//  std::set<std::string> links_;
-
-  //boost::function<void(const std::set<std::string>&)> after_response_;
-
-
-
-//  AfterGetWikiLinksResponseFunctor after_get_wiki_links_;
-
+  bool verbose_;
 };
 
 
