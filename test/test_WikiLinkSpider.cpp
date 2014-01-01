@@ -17,8 +17,7 @@ BOOST_AUTO_TEST_CASE( WikiLinkSpider_constructor )
 	boost::asio::io_service io_service;
 
 	WikiLinkWeb web;
-	WikiLinkGetter getter(io_service);
-	WikiLinkSpider spider(web, getter);
+	WikiLinkSpider spider(io_service, web);
 }
 
 
@@ -28,14 +27,19 @@ BOOST_AUTO_TEST_CASE( WikiLinkSpider_crawl )
 	boost::asio::io_service io_service;
 
 	WikiLinkWeb web;
-	WikiLinkGetter getter(io_service);
-	WikiLinkSpider spider(web, getter);
+	WikiLinkSpider spider(io_service, web);
 
-	spider.crawl("Kevin_Bacon", "Philosopy");
+	spider.crawl("Kevin Bacon", "Philosopy");
 
 	io_service.run();
 
+	BOOST_CHECK(web.size() > 0);
 
-	WikiLinkSpider::Web::NodeSharedPtrList result = spider.getWeb().find("Kevin_Bacon", "Philosopy");
+	cout << "web.size(): " << web.size() << endl;
+	cout << web << endl;
+
+	// WikiLinkSpider::Web::NodeSharedPtrList result = web.find("Kevin_Bacon", "Philosopy");
+
+	// BOOST_CHECK(result.size() > 0);
 //	HttpGetter::Response response = getter.getResponse();
 }

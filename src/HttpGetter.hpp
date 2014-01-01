@@ -27,6 +27,15 @@ public:
     std::string http_version;
     std::map<std::string, std::string> header;
     std::string body;
+
+    void clear()
+    {
+      status_code = 0;
+      status_message = "";
+      http_version = "";
+      header.clear();
+      body = "";
+    }
   };
 
   HttpGetter(boost::asio::io_service& io_service)
@@ -40,10 +49,21 @@ public:
 
   void get(const std::string& server, const std::string& path, boost::function<void(const Response&)> callback)
   {
+    if (verbose_)
+    {
+      std::cout << server << path << std::endl;
+    }
+
+    result_.str("");
+    response_.clear();
     after_get_response_ = callback;
     request_get(server, path);
   }
 
+  void verbose(bool v)
+  {
+    verbose_ = v;
+  }
 
   static void noop(const HttpGetter::Response&)
   {
@@ -53,6 +73,11 @@ protected:
 
   virtual void request_get(const std::string& server, const std::string& path)
   {
+    if (verbose_)
+    {
+      std::cout << "request_get" << std::endl;
+    }
+
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
@@ -74,6 +99,11 @@ protected:
   virtual void handle_resolve(const boost::system::error_code& err,
       tcp::resolver::iterator endpoint_iterator)
   {
+    if (verbose_)
+    {
+      std::cout << "handle_resolve" << std::endl;
+    }
+
     if (!err)
     {
       // Attempt a connection to each endpoint in the list until we
@@ -90,6 +120,11 @@ protected:
 
   virtual void handle_connect(const boost::system::error_code& err)
   {
+    if (verbose_)
+    {
+      std::cout << "handle_connect" << std::endl;
+    }
+
     if (!err)
     {
       // The connection was successful. Send the request.
@@ -105,6 +140,11 @@ protected:
 
   virtual void handle_write_request(const boost::system::error_code& err)
   {
+    if (verbose_)
+    {
+      std::cout << "handle_write_request" << std::endl;
+    }
+
     if (!err)
     {
       // Read the response status line. The response_buffer_ streambuf will
@@ -122,6 +162,11 @@ protected:
 
   virtual void handle_read_status_line(const boost::system::error_code& err)
   {
+    if (verbose_)
+    {
+      std::cout << "handle_read_status_line" << std::endl;
+    }
+
     if (!err)
     {
       // Check that response is OK.
@@ -158,6 +203,11 @@ protected:
 
   virtual void handle_read_headers(const boost::system::error_code& err)
   {
+    if (verbose_)
+    {
+      std::cout << "handle_read_headers" << std::endl;
+    }
+
     if (!err)
     {
       // Process the response headers.
@@ -197,6 +247,11 @@ protected:
 
   virtual void handle_read_content(const boost::system::error_code& err)
   {
+    if (verbose_)
+    {
+      std::cout << "handle_read_content" << std::endl;
+    }
+
     if (!err)
     {
       // Write all of the data that has been read so far.
@@ -255,6 +310,7 @@ protected:
     FileLogger log(filename);
     log << str;
   }
+
 
 private:
   tcp::resolver resolver_;

@@ -2,6 +2,7 @@
 #define WIKI_LINK_WEB_HPP
 
 
+#include <iostream>
 #include <string>
 #include "GenericSpiderWeb.hpp"
 
@@ -46,6 +47,22 @@ public:
     return super::find(from, to);
   }   
 };
+
+
+
+
+std::ostream& operator<<(std::ostream& os, const WikiLinkWeb& web)
+{
+  const WikiLinkWeb::NodeSet& nodes = web.getNodes();
+  WikiLinkWeb::NodeSet::iterator i = nodes.begin();
+
+  for (; i != nodes.end(); ++i)
+  {
+    os << (*i)->c_str() << std::endl;
+  }
+
+  return os;
+}
 
 
 

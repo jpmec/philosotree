@@ -17,15 +17,19 @@
 // #include "WikiLinkGetter.hpp"
 
 
-class WikiLinkSpider : public GenericSpider< WikiLinkWeb, WikiLinkGetter >
+class WikiLinkSpider// : public GenericSpider< WikiLinkWeb, WikiLinkGetter >
 {
-  typedef GenericSpider< WikiLinkWeb, WikiLinkGetter > super;
+//  typedef GenericSpider< WikiLinkWeb, WikiLinkGetter > super;
 
 public:
-  WikiLinkSpider(WikiLinkWeb& web, WikiLinkGetter& getter)
-  : super(web, getter)
+  WikiLinkSpider(boost::asio::io_service& io_service, WikiLinkWeb& web)
+  : unexplored_()
+  , io_service_(io_service)
+  , web_(web)
+  , getter_(io_service)
+  , links_to_web_(getter_, web, unexplored_)
   {
-    
+    //getter_.verbose(true);
   }
 
   virtual ~WikiLinkSpider()
@@ -37,7 +41,18 @@ public:
     const std::string from_str(from);
     const std::string to_str(to);
 
-    super::crawl(from_str, to_str);
+    if (web_.contains(from_str))
+    {
+      if (web_.contains(to_str))
+      {
+       return;
+      }
+    }
+    else
+    {
+      web_.insert(from_str);
+      getter_.get(from, links_to_web_);
+    }
   }
 
 
@@ -60,6 +75,46 @@ protected:
   WikiLinkSpider(const WikiLinkSpider&);
   WikiLinkSpider& operator=(const WikiLinkSpider&);
 
+
+  struct LinksToWeb
+  {
+    LinksToWeb(WikiLinkGetter& getter, WikiLinkWeb& web, std::set<WikiLinkWeb::NodeSharedPtr>& unexplored)
+    : getter_(getter)
+    , web_(web)
+    , unexplored_(unexplored)
+    , get_limit(3)
+    {
+
+    }
+
+    void operator()(const std::set<std::string>& links)
+    {
+      std::set<std::string>::const_iterator i = links.begin();
+      for (; i != links.end(); ++i)
+      {
+        if (!web_.contains(*i))
+        {
+          unexplored_.insert(web_.insert(*i));
+        }
+      }
+
+
+      if ((0 < get_limit) && unexplored_.size())
+      {
+        --get_limit;
+
+        std::set<WikiLinkWeb::NodeSharedPtr>::iterator first = unexplored_.begin();
+        getter_.get((*first)->c_str(), *this);  
+        unexplored_.erase(first);      
+      }
+    }
+
+    WikiLinkGetter& getter_;
+    WikiLinkWeb& web_;
+    std::set<WikiLinkWeb::NodeSharedPtr>& unexplored_;
+    int get_limit;    
+  };
+
 //   std::list<std::string> findFromTo(const char* from, const char* to)
 //   {
 //     std::list<std::string> result;
@@ -67,9 +122,16 @@ protected:
 //     return result;
 //   }
 
-// private:
-//   boost::asio::io_service io_service;
 
+private:
+  std::set<WikiLinkWeb::NodeSharedPtr> unexplored_;
+
+  boost::asio::io_service& io_service_;
+  WikiLinkWeb& web_;
+  WikiLinkGetter getter_;
+  LinksToWeb links_to_web_;
+
+  std::set<std::string> links_;
 
 };
 

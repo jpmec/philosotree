@@ -40,6 +40,11 @@ public:
     http_getter_.get(server_, link_path, after_response_);
   }
 
+  void verbose(bool v)
+  {
+    http_getter_.verbose(v);
+  }
+
   static void noop(const std::set<std::string>&)
   {
   }
@@ -63,6 +68,11 @@ protected:
       std::set<std::string> links_set;
 
       std::istringstream json_stream(r.body);
+
+      //std::cout << "body" << std::endl;
+      //std::cout << r.body << std::endl;
+
+
       read_json(json_stream, pt);
       
       // //pt.get_child("query-continue").get_child("links").get_child("plcontinue");
