@@ -81,7 +81,7 @@ protected:
     : getter_(getter)
     , web_(web)
     , unexplored_(unexplored)
-    , get_limit_(100)
+    , get_limit_(0)
     , verbose_(false)
     {
       if (verbose_)

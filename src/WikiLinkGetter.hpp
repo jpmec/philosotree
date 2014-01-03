@@ -22,7 +22,6 @@ public:
     : http_getter_(io_service)
     , server_("en.wikipedia.org")
     , path_("/w/api.php?action=query&format=json&prop=links&pllimit=max&titles=")
-    , after_response_(WikiLinkGetter::noop)
     , verbose_(false)
   {
     if (verbose_)
@@ -42,8 +41,8 @@ public:
     std::string link_path(path_);
     link_path += link;
 
-    after_response_ = ResponseToLinks(callback);
-    http_getter_.get(server_, link_path, after_response_);
+    links_set_.clear();
+    http_getter_.get(server_, link_path, ResponseToLinks(http_getter_, server_, link_path, links_set_, callback));
   }
 
 
@@ -65,13 +64,18 @@ protected:
 
   struct ResponseToLinks
   {
-    ResponseToLinks(boost::function<void(const std::set<std::string>&)> after_response)
-    : after_response_(after_response)
+    ResponseToLinks(HttpGetter& http_getter, const std::string& server, const std::string& link_path, std::set<std::string>& links_set, boost::function<void(const std::set<std::string>&)> after_response)
+    : http_getter_(http_getter)
+    , server_(server)
+    , link_path_(link_path)
+    , links_set_(links_set)
+    , after_response_(after_response)
     , verbose_(false)
     {
       if (verbose_)
         std::cout << this << " WikiLinkGetter::ResponseToLinks::ResponseToLinks()" << std::endl;
     }
+
 
     virtual ~ResponseToLinks()
     {
@@ -79,13 +83,13 @@ protected:
         std::cout << this << " WikiLinkGetter::ResponseToLinks::~ResponseToLinks()" << std::endl;      
     }
 
+
     void operator()(const HttpGetter::Response& r)
     {
       if (verbose_)
         std::cout << this << " WikiLinkGetter::ResponseToLinks::operator()" << std::endl;   
 
       boost::property_tree::ptree pt;
-      std::set<std::string> links_set;
 
       std::istringstream json_stream(r.body);
 
@@ -93,11 +97,13 @@ protected:
       //std::cout << r.body << std::endl;
 
 
+      std::string plcontinue;
+
       try
       {
         read_json(json_stream, pt);
         
-        // //pt.get_child("query-continue").get_child("links").get_child("plcontinue");
+        plcontinue = pt.get<std::string>("query-continue.links.plcontinue", "");        
 
         pt = pt.get_child("query");
         pt = pt.get_child("pages");
@@ -108,7 +114,7 @@ protected:
 
           for (boost::property_tree::ptree::iterator l = links.begin(); l != links.end(); ++l)
           {
-            links_set.insert(l->second.get_child("title").get_value<std::string>());
+            links_set_.insert(l->second.get_child("title").get_value<std::string>());
           }
         }
       }
@@ -117,9 +123,20 @@ protected:
         
       }
 
-      after_response_(links_set);
+      if (plcontinue.size())
+      {
+        http_getter_.get(server_, link_path_ + "&plcontinue=" + plcontinue, ResponseToLinks(http_getter_, server_, link_path_, links_set_, after_response_));
+      }
+      else
+      {
+        after_response_(links_set_);
+      }
     }
 
+    HttpGetter& http_getter_;
+    std::string server_;
+    std::string link_path_;
+    std::set<std::string>& links_set_;
     boost::function<void(const std::set<std::string>&)> after_response_;
     bool verbose_;    
   };
@@ -129,8 +146,8 @@ private:
   HttpGetter http_getter_;
   std::string server_;
   std::string path_;
-  ResponseToLinks after_response_;
   bool verbose_;
+  std::set<std::string> links_set_;
 };
 
 

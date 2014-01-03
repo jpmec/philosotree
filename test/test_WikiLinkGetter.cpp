@@ -48,18 +48,21 @@ BOOST_AUTO_TEST_CASE( WikiLinkGetter_get )
 	get_links f(links);
 	WikiLinkGetter getter(io_service);
 
+	//getter.verbose(true);
+
 	getter.get("Philosophy", f);
 
 	io_service.run();
 
 	BOOST_CHECK(0 < links.size());
 
+	cout << links.size() << endl;
 	//cout << response << endl;
 
-	for (std::set<std::string>::iterator i = links.begin(); i != links.end(); ++i)
-	{
-		cout << *i << endl;
-	}
+	// for (std::set<std::string>::iterator i = links.begin(); i != links.end(); ++i)
+	// {
+	// 	cout << *i << endl;
+	// }
 }
 
 
