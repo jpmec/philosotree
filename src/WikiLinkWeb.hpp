@@ -75,7 +75,12 @@ std::ostream& operator<<(std::ostream& os, const WikiLinkWeb& web)
       if (f != from.end())
       {
         os << (*f)->c_str();
-      }      
+
+        for (++f; f != from.end(); ++f)
+        {
+          os << ", " << (*f)->c_str();
+        }
+      }   
 
       os << " }, ";
 
@@ -89,6 +94,11 @@ std::ostream& operator<<(std::ostream& os, const WikiLinkWeb& web)
       if (t != to.end())
       {
         os << (*t)->c_str();
+
+        for (++t; t != to.end(); ++t)
+        {
+          os << ", " << (*t)->c_str();
+        }
       }    
 
       os << " } ";      
