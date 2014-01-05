@@ -16,7 +16,6 @@ using boost::algorithm::trim;
 
 
 
-
 class HttpGetter
 {
 public:
@@ -38,12 +37,15 @@ public:
     }
   };
 
-  HttpGetter(boost::asio::io_service& io_service)
+  HttpGetter(boost::asio::io_service& io_service, bool verbose = false)
     : resolver_(io_service)
-    ,  socket_(io_service)
-    ,  verbose_(false)
+    , socket_(io_service)
+    , verbose_(verbose)
   {
-    log(typeid(HttpGetter).name());
+    if (verbose_)
+    {
+      std::cout << this << " HttpGetter::HttpGetter" << std::endl;
+    }
   }
 
 
@@ -51,38 +53,62 @@ public:
   {
     if (verbose_)
     {
+      std::cout << this << " HttpGetter::get" << std::endl;
       std::cout << server << path << std::endl;
     }
 
     result_.str("");
     response_.clear();
     after_get_response_ = callback;
-    request_get(server, path);
+    server_ = server;
+    path_ = path;
+    request_get(server_, path_);
   }
 
+  
   void verbose(bool v)
   {
     verbose_ = v;
   }
 
-  static void noop(const HttpGetter::Response&)
+  
+  // static void noop(const HttpGetter::Response&)
+  // {    
+  // }
+
+  
+protected:
+
+
+  virtual std::string url_encode(const std::string& path)
   {
+    if (verbose_)
+    {
+      std::cout << this << " HttpGetter::url_encode" << std::endl;
+    }
+
+    std::string url_encoded_path(path);
+
+    boost::algorithm::replace_all(url_encoded_path, " ", "\x25""20");
+  
+    return url_encoded_path;    
   }
 
-protected:
 
   virtual void request_get(const std::string& server, const std::string& path)
   {
     if (verbose_)
     {
-      std::cout << "request_get" << std::endl;
+      std::cout << this << " HttpGetter::request_get" << std::endl;
     }
+
+    std::string url_encoded_path = url_encode(path);
 
     // Form the request. We specify the "Connection: close" header so that the
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
     std::ostream request_stream(&request_buffer_);
-    request_stream << "GET " << path << " HTTP/1.0\r\n";
+    request_stream << "GET " << url_encoded_path << " HTTP/1.0\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: close\r\n\r\n";
@@ -101,7 +127,7 @@ protected:
   {
     if (verbose_)
     {
-      std::cout << "handle_resolve" << std::endl;
+      std::cout << this << " HttpGetter::handle_resolve" << std::endl;
     }
 
     if (!err)
@@ -122,7 +148,7 @@ protected:
   {
     if (verbose_)
     {
-      std::cout << "handle_connect" << std::endl;
+      std::cout << this << " HttpGetter::handle_connect" << std::endl;
     }
 
     if (!err)
@@ -142,7 +168,7 @@ protected:
   {
     if (verbose_)
     {
-      std::cout << "handle_write_request" << std::endl;
+      std::cout << this << " HttpGetter::handle_write_request" << std::endl;
     }
 
     if (!err)
@@ -164,7 +190,7 @@ protected:
   {
     if (verbose_)
     {
-      std::cout << "handle_read_status_line" << std::endl;
+      std::cout << this << " HttpGetter::handle_read_status_line" << std::endl;
     }
 
     if (!err)
@@ -205,7 +231,7 @@ protected:
   {
     if (verbose_)
     {
-      std::cout << "handle_read_headers" << std::endl;
+      std::cout << this << " HttpGetter::handle_read_headers" << std::endl;
     }
 
     if (!err)
@@ -249,7 +275,7 @@ protected:
   {
     if (verbose_)
     {
-      std::cout << "handle_read_content" << std::endl;
+      std::cout << this << " HttpGetter::handle_read_content" << std::endl;
     }
 
     if (!err)
@@ -274,8 +300,14 @@ protected:
     }    
   }
 
+
   virtual void onEof()
   {
+    if (verbose_)
+    {
+      std::cout << this << " HttpGetter::onEof" << std::endl;
+    }
+
     response_.body = result_.str();
   }
 
@@ -317,6 +349,8 @@ private:
   tcp::socket socket_;
   boost::asio::streambuf request_buffer_;
   boost::asio::streambuf response_buffer_;
+  std::string server_;
+  std::string path_;
   std::ostringstream result_;
   bool verbose_;
   Response response_;

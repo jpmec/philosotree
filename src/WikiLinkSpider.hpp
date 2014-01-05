@@ -2,32 +2,25 @@
 #define WIKI_LINK_SPIDER_HPP
 
 
-// #include <map>
-// #include <set>
-// #include <string>
-// #include <utility>
-
-//#include <boost/asio.hpp>
-//#include <boost/bind.hpp>
+#include <set>
+#include <list>
+#include <string>
 
 #include "GenericSpider.hpp"
 #include "WikiLinkGetter.hpp"
 #include "WikiLinkWeb.hpp"
 
-// #include "WikiLinkGetter.hpp"
 
 
-class WikiLinkSpider// : public GenericSpider< WikiLinkWeb, WikiLinkGetter >
+
+class WikiLinkSpider
 {
-//  typedef GenericSpider< WikiLinkWeb, WikiLinkGetter > super;
-
 public:
   WikiLinkSpider(boost::asio::io_service& io_service, WikiLinkWeb& web)
   : unexplored_()
   , io_service_(io_service)
   , web_(web)
   , getter_(io_service)
-  , links_to_web_(getter_, web, unexplored_)
   , verbose_(false)
   {
     if (verbose_)
@@ -58,7 +51,7 @@ public:
     else
     {
       web_.insert(from_str);
-      getter_.get(from, links_to_web_);
+      getter_.get(from, LinksToWeb(getter_, from_str, web_, unexplored_, explore_next_));
     }
   }
 
@@ -66,7 +59,6 @@ public:
   {
     verbose_ = v;
     getter_.verbose(v);
-    links_to_web_.verbose(v);
   }
 
 protected:
@@ -77,12 +69,20 @@ protected:
 
   struct LinksToWeb
   {
-    LinksToWeb(WikiLinkGetter& getter, WikiLinkWeb& web, std::set<WikiLinkWeb::NodeSharedPtr>& unexplored)
+    LinksToWeb( WikiLinkGetter& getter
+              , const std::string& link_title
+              , WikiLinkWeb& web
+              , std::set<WikiLinkWeb::NodeSharedPtr>& unexplored
+              , std::list<WikiLinkWeb::NodeSharedPtr>& explore_next              
+              , int get_limit = 2
+              , bool verbose = false)
     : getter_(getter)
+    , link_title_(link_title)
     , web_(web)
     , unexplored_(unexplored)
-    , get_limit_(0)
-    , verbose_(false)
+    , explore_next_(explore_next)
+    , get_limit_(get_limit)
+    , verbose_(verbose)
     {
       if (verbose_)
         std::cout << this << " WikiLinkSpider::LinksToWeb::LinksToWeb" << std::endl;
@@ -104,24 +104,28 @@ protected:
       {
         if (!web_.contains(*i))
         {
-          unexplored_.insert(web_.insert(*i));
+          WikiLinkWeb::NodeSharedPtr ptr = web_.insert(*i);
+          web_.connect(link_title_, *i);
+          unexplored_.insert(ptr);
+          explore_next_.push_back(ptr);
         }
       }
 
 
-      if ((0 < get_limit_) && unexplored_.size())
+      if ((0 < get_limit_) && explore_next_.size())
       {
         --get_limit_;
         
-        if (verbose_)
+//        if (verbose_)
           std::cout << "get_limit: " << get_limit_ << std::endl;
 
-        std::set<WikiLinkWeb::NodeSharedPtr>::iterator first = unexplored_.begin();
-        if (first != unexplored_.end())
+        std::list<WikiLinkWeb::NodeSharedPtr>::iterator first = explore_next_.begin();
+        if (first != explore_next_.end())
         {
           std::string link = (*first)->c_str();
-          unexplored_.erase(first);
-          getter_.get(link.c_str(), *this);
+          unexplored_.erase(*first);
+          explore_next_.pop_front();
+          getter_.get(link.c_str(), LinksToWeb(getter_, link, web_, unexplored_, explore_next_, get_limit_, verbose_));
         }
       }
     }
@@ -132,27 +136,22 @@ protected:
     }
 
     WikiLinkGetter& getter_;
+    std::string link_title_;
     WikiLinkWeb& web_;
     std::set<WikiLinkWeb::NodeSharedPtr>& unexplored_;
+    std::list<WikiLinkWeb::NodeSharedPtr>& explore_next_;    
     int get_limit_;
     bool verbose_;    
   };
 
-//   std::list<std::string> findFromTo(const char* from, const char* to)
-//   {
-//     std::list<std::string> result;
-
-//     return result;
-//   }
-
 
 private:
   std::set<WikiLinkWeb::NodeSharedPtr> unexplored_;
+  std::list<WikiLinkWeb::NodeSharedPtr> explore_next_;
 
   boost::asio::io_service& io_service_;
   WikiLinkWeb& web_;
   WikiLinkGetter getter_;
-  LinksToWeb links_to_web_;
 
   std::set<std::string> links_;
   bool verbose_;

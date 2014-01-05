@@ -36,13 +36,21 @@ public:
   }
 
 
-  void get(const char* link, boost::function<void(const std::set<std::string>&)> callback)
+  void get(const char* link_title, boost::function<void(const std::set<std::string>&)> callback)
   {
     std::string link_path(path_);
-    link_path += link;
+    link_path += link_title;
 
     links_set_.clear();
-    http_getter_.get(server_, link_path, ResponseToLinks(http_getter_, server_, link_path, links_set_, callback));
+    http_getter_.get( server_
+                    , link_path
+                    , ResponseToLinks( http_getter_
+                                     , server_
+                                     , link_path
+                                     , link_title
+                                     , links_set_
+                                     , callback
+                                     , verbose_));
   }
 
 
@@ -64,23 +72,34 @@ protected:
 
   struct ResponseToLinks
   {
-    ResponseToLinks(HttpGetter& http_getter, const std::string& server, const std::string& link_path, std::set<std::string>& links_set, boost::function<void(const std::set<std::string>&)> after_response)
+    ResponseToLinks( HttpGetter& http_getter
+                   , const std::string& server
+                   , const std::string& link_path
+                   , const std::string& link_title
+                   , std::set<std::string>& links_set
+                   , boost::function<void(const std::set<std::string>&)> after_response
+                   , bool verbose = false)
     : http_getter_(http_getter)
     , server_(server)
     , link_path_(link_path)
+    , link_title_(link_title)
     , links_set_(links_set)
     , after_response_(after_response)
-    , verbose_(false)
+    , verbose_(verbose)
     {
       if (verbose_)
+      {
         std::cout << this << " WikiLinkGetter::ResponseToLinks::ResponseToLinks()" << std::endl;
+      }
     }
 
 
     virtual ~ResponseToLinks()
     {
       if (verbose_)
-        std::cout << this << " WikiLinkGetter::ResponseToLinks::~ResponseToLinks()" << std::endl;      
+      {
+        std::cout << this << " WikiLinkGetter::ResponseToLinks::~ResponseToLinks()" << std::endl;
+      }     
     }
 
 
@@ -89,18 +108,17 @@ protected:
       if (verbose_)
         std::cout << this << " WikiLinkGetter::ResponseToLinks::operator()" << std::endl;   
 
-      boost::property_tree::ptree pt;
+      if (verbose_)
+      {
+        std::cout << r << std::endl;
+      }        
 
       std::istringstream json_stream(r.body);
-
-      //std::cout << "body" << std::endl;
-      //std::cout << r.body << std::endl;
-
-
       std::string plcontinue;
 
       try
       {
+        boost::property_tree::ptree pt;
         read_json(json_stream, pt);
         
         plcontinue = pt.get<std::string>("query-continue.links.plcontinue", "");        
@@ -125,7 +143,14 @@ protected:
 
       if (plcontinue.size())
       {
-        http_getter_.get(server_, link_path_ + "&plcontinue=" + plcontinue, ResponseToLinks(http_getter_, server_, link_path_, links_set_, after_response_));
+        http_getter_.get( server_
+                        , link_path_ + "&plcontinue=" + plcontinue
+                        , ResponseToLinks( http_getter_
+                                         , server_
+                                         , link_path_
+                                         , link_title_
+                                         , links_set_
+                                         , after_response_));
       }
       else
       {
@@ -136,6 +161,7 @@ protected:
     HttpGetter& http_getter_;
     std::string server_;
     std::string link_path_;
+    std::string link_title_;
     std::set<std::string>& links_set_;
     boost::function<void(const std::set<std::string>&)> after_response_;
     bool verbose_;    
