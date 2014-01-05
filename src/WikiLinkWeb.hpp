@@ -54,11 +54,47 @@ public:
 std::ostream& operator<<(std::ostream& os, const WikiLinkWeb& web)
 {
   const WikiLinkWeb::NodeSet& nodes = web.getNodes();
+  const WikiLinkWeb::DirectedGraph& graph = web.getGraph();
+
   WikiLinkWeb::NodeSet::iterator i = nodes.begin();
 
   for (; i != nodes.end(); ++i)
   {
-    os << (*i)->c_str() << std::endl;
+    os << (*i)->c_str() << ": { ";
+
+    WikiLinkWeb::DirectedGraph::const_iterator g = graph.find(*i);
+
+    if (g != graph.end())
+    {
+      const WikiLinkWeb::NodeSet& from(g->second->first);
+
+      os << "from : { ";
+
+      WikiLinkWeb::NodeSet::const_iterator f = from.begin();
+
+      if (f != from.end())
+      {
+        os << (*f)->c_str();
+      }      
+
+      os << " }, ";
+
+
+      const WikiLinkWeb::NodeSet& to(g->second->second);
+
+      os << "to : { ";
+
+      WikiLinkWeb::NodeSet::const_iterator t = to.begin();
+
+      if (t != to.end())
+      {
+        os << (*t)->c_str();
+      }    
+
+      os << " } ";      
+    }
+
+    os << " }" << std::endl;
   }
 
   return os;

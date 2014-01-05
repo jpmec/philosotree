@@ -49,13 +49,19 @@ public:
 
   const NodeSet& getNodes() const
   {
-    return nodes;
+    return nodes_;
   }
 
 
   const DirectedGraph& getGraph() const
   {
-    return graph;
+    return graph_;
+  }
+
+
+  size_t size() const
+  {
+    return nodes_.size();
   }
 
 
@@ -70,11 +76,11 @@ public:
 
     NodeSharedPtr new_node(new Node(node));
 
-    this->nodes.insert(new_node);
+    this->nodes_.insert(new_node);
 
     NodeSetPairSharedPtr new_node_set_pair(new NodeSetPair());
 
-    this->graph.insert(DirectedGraphPair(new_node, new_node_set_pair));
+    this->graph_.insert(DirectedGraphPair(new_node, new_node_set_pair));
 
     return new_node;    
   }
@@ -83,11 +89,11 @@ public:
   NodeSharedPtr find(const Node& node) const
   {
     typename NodeSet::iterator i = std::find_if(
-      nodes.begin(), 
-      nodes.end(),
+      nodes_.begin(), 
+      nodes_.end(),
       std::bind2nd(NodeSharedPtrEqualsNode(), node));
 
-    if (i != nodes.end())
+    if (i != nodes_.end())
     {
       return *i;
     }
@@ -95,6 +101,46 @@ public:
     {
       return NodeSharedPtr();      
     }    
+  }
+
+
+  const NodeSet& findTo(const Node& node) const
+  {
+    NodeSharedPtr node_ptr = find(node);
+
+    if (!node_ptr.get())
+    {
+      return empty_node_set_;
+    }
+
+    typename DirectedGraph::const_iterator i = graph_.find(node_ptr);
+
+    if (i == graph_.end())
+    {
+      return empty_node_set_;      
+    }
+
+    return i->second->second; 
+  }
+
+
+  const NodeSet& findFrom(const Node& node) const
+  {
+    NodeSharedPtr node_ptr = find(node);
+
+    if (!node_ptr.get())
+    {
+      return empty_node_set_;
+    }
+
+    typename DirectedGraph::const_iterator i = graph_.find(node_ptr);
+
+    if (i == graph_.end())
+    {
+      return empty_node_set_;      
+    }
+
+    return i->second->first; 
   }
 
 
@@ -108,14 +154,14 @@ public:
   void erase(const Node& node)
   {
     typename NodeSet::iterator i = std::find_if(
-      nodes.begin(), 
-      nodes.end(),
+      nodes_.begin(), 
+      nodes_.end(),
       std::bind2nd(NodeSharedPtrEqualsNode(), node));
 
-    if (i != nodes.end())
+    if (i != nodes_.end())
     {
-      graph.erase(*i);
-      nodes.erase(i);
+      graph_.erase(*i);
+      nodes_.erase(i);
     }
   }
 
@@ -125,8 +171,8 @@ public:
     NodeSharedPtr from_node_ptr = insert(from_node);
     NodeSharedPtr to_node_ptr = insert(to_node);
 
-    typename DirectedGraph::iterator graph_from = graph.find(from_node_ptr);
-    typename DirectedGraph::iterator graph_to = graph.find(from_node_ptr);
+    typename DirectedGraph::iterator graph_from = graph_.find(from_node_ptr);
+    typename DirectedGraph::iterator graph_to = graph_.find(to_node_ptr);
 
     graph_from->second->second.insert(to_node_ptr);
     graph_to->second->first.insert(from_node_ptr);
@@ -200,14 +246,14 @@ protected:
   {
     NodeSharedPtrList result;
 
-    typename DirectedGraph::const_iterator graph_from = graph.find(from_node_ptr);
-    if (graph_from == graph.end())
+    typename DirectedGraph::const_iterator graph_from = graph_.find(from_node_ptr);
+    if (graph_from == graph_.end())
     {
       return result;
     }
 
-    typename DirectedGraph::const_iterator graph_to = graph.find(to_node_ptr);
-    if (graph_to == graph.end())
+    typename DirectedGraph::const_iterator graph_to = graph_.find(to_node_ptr);
+    if (graph_to == graph_.end())
     {
       return result;
     }
@@ -244,8 +290,9 @@ protected:
 
 
 private:
-  NodeSet nodes;
-  DirectedGraph graph;
+  NodeSet nodes_;
+  DirectedGraph graph_;
+  const NodeSet empty_node_set_;
 };
 
 

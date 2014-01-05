@@ -288,3 +288,52 @@ BOOST_AUTO_TEST_CASE( WikiLinkWeb_find_2 )
 	}				
 }
 
+
+
+
+BOOST_AUTO_TEST_CASE( WikiLinkWeb_findTo_findFrom_1 )
+{
+	WikiLinkWeb web;
+
+	const WikiLinkWeb::NodeSet& nodes = web.getNodes();
+	const WikiLinkWeb::DirectedGraph& graph = web.getGraph();
+
+	web.connect("hello", "world");
+	web.connect("world", "peace");
+
+	{		
+		const WikiLinkWeb::NodeSet& to_set = web.findTo("not here");
+		BOOST_CHECK(0 == to_set.size());
+
+		const WikiLinkWeb::NodeSet& from_set = web.findFrom("not here");
+		BOOST_CHECK(0 == from_set.size());		
+	}
+
+	{		
+		const WikiLinkWeb::NodeSet& to_set = web.findTo("hello");
+		BOOST_CHECK(1 == to_set.size());
+
+		const WikiLinkWeb::NodeSet& from_set = web.findFrom("hello");
+		BOOST_CHECK(0 == from_set.size());		
+	}
+
+	{		
+		const WikiLinkWeb::NodeSet& to_set = web.findTo("world");
+		BOOST_CHECK(1 == to_set.size());
+
+		const WikiLinkWeb::NodeSet& from_set = web.findFrom("world");
+		BOOST_CHECK(1 == from_set.size());
+	}
+
+	{		
+		const WikiLinkWeb::NodeSet& to_set = web.findTo("peace");
+		BOOST_CHECK(0 == to_set.size());
+
+		const WikiLinkWeb::NodeSet& from_set = web.findFrom("peace");
+		BOOST_CHECK(1 == from_set.size());		
+	}
+
+	std::cout << web << std::endl;
+}
+
+
