@@ -27,7 +27,7 @@ INCLUDE_FLAGS = -I$(BOOST_INCLUDE_PATH) -I./src/
 DARWIN_CXXFLAGS = -Wall -Wextra -O3 $(INCLUDE_FLAGS) -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare
 LINUX_CXXFLAGS = -Wall -Wextra -O3 $(INCLUDE_FLAGS)
 
-DARWIN_LDFLAGS = -L$(BOOST_LIB_PATH) -l$(BOOST_LIB)
+DARWIN_LDFLAGS = -L$(BOOST_LIB_PATH) -l$(BOOST_LIB) -lboost_program_options-mt
 LINUX_LDFLAGS = -L$(BOOST_LIB_PATH) -l$(BOOST_LIB)
 
 ifeq ($(UNAME),Darwin)

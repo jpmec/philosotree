@@ -11,6 +11,8 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
+#include "HttpResponse.hpp"
+
 using boost::asio::ip::tcp;
 using boost::algorithm::trim;
 
@@ -18,24 +20,22 @@ using boost::algorithm::trim;
 
 class HttpGetter
 {
-public:
-  struct Response
-  {
-    unsigned int status_code;
-    std::string status_message;
-    std::string http_version;
-    std::map<std::string, std::string> header;
-    std::string body;
+private:
+  tcp::resolver resolver_;
+  tcp::socket socket_;
+  boost::asio::streambuf request_buffer_;
+  boost::asio::streambuf response_buffer_;
+  std::string server_;
+  std::string path_;
+  std::ostringstream result_;
+  bool verbose_;
+  HttpResponse response_;
 
-    void clear()
-    {
-      status_code = 0;
-      status_message = "";
-      http_version = "";
-      header.clear();
-      body = "";
-    }
-  };
+  boost::function<void(const HttpResponse&)> after_get_response_;
+  boost::function<void(const boost::system::error_code&)> on_error_;
+
+
+public:
 
   HttpGetter(boost::asio::io_service& io_service, bool verbose = false)
     : resolver_(io_service)
@@ -49,7 +49,10 @@ public:
   }
 
 
-  void get(const std::string& server, const std::string& path, boost::function<void(const Response&)> callback)
+  void get( const std::string& server
+          , const std::string& path
+          , boost::function<void(const HttpResponse&)> after_get = HttpGetter::noop
+          , boost::function<void(const boost::system::error_code&)> on_error = HttpGetter::error_noop)
   {
     if (verbose_)
     {
@@ -59,24 +62,30 @@ public:
 
     result_.str("");
     response_.clear();
-    after_get_response_ = callback;
+    after_get_response_ = after_get;
+    on_error_ = on_error;
     server_ = server;
     path_ = path;
     request_get(server_, path_);
   }
 
-  
+
   void verbose(bool v)
   {
     verbose_ = v;
   }
 
-  
-  // static void noop(const HttpGetter::Response&)
-  // {    
-  // }
 
-  
+  static void noop(const HttpResponse&)
+  {
+  }
+
+
+  static void error_noop(const boost::system::error_code&)
+  {
+  }
+
+
 protected:
 
 
@@ -90,8 +99,8 @@ protected:
     std::string url_encoded_path(path);
 
     boost::algorithm::replace_all(url_encoded_path, " ", "\x25""20");
-  
-    return url_encoded_path;    
+
+    return url_encoded_path;
   }
 
 
@@ -119,7 +128,7 @@ protected:
     resolver_.async_resolve(query,
         boost::bind(&HttpGetter::handle_resolve, this,
           boost::asio::placeholders::error,
-          boost::asio::placeholders::iterator));    
+          boost::asio::placeholders::iterator));
   }
 
   virtual void handle_resolve(const boost::system::error_code& err,
@@ -141,6 +150,7 @@ protected:
     else
     {
       std::cerr << "Error: " << err.message() << "\n";
+      on_error_(err);
     }
   }
 
@@ -161,6 +171,7 @@ protected:
     else
     {
       std::cout << "Error: " << err.message() << "\n";
+      on_error_(err);
     }
   }
 
@@ -183,6 +194,7 @@ protected:
     else
     {
       std::cerr << "Error: " << err.message() << "\n";
+      on_error_(err);
     }
   }
 
@@ -221,9 +233,19 @@ protected:
           boost::bind(&HttpGetter::handle_read_headers, this,
             boost::asio::placeholders::error));
     }
+    else if (err == boost::asio::error::eof)
+    {
+      std::cout << "Error eof: " << err << "\n";
+
+      std::istream response_stream(&response_buffer_);
+      std::string str;
+      std::cout << "error str: " << str << std::endl;
+      on_error_(err);
+    }
     else
     {
       std::cout << "Error: " << err << "\n";
+      on_error_(err);
     }
   }
 
@@ -250,7 +272,7 @@ protected:
         else
         {
           std::string header_key = header.substr(0, pos);
-          std::string header_value = header.substr(pos + 2, header.size()); 
+          std::string header_value = header.substr(pos + 2, header.size());
           response_.header[header_key] = header_value;
         }
       }
@@ -268,6 +290,7 @@ protected:
     else
     {
       std::cerr << "Error: " << err << "\n";
+      on_error_(err);
     }
   }
 
@@ -297,7 +320,8 @@ protected:
     else if (err != boost::asio::error::eof)
     {
       std::cerr << "Error: " << err << "\n";
-    }    
+      on_error_(err);
+    }
   }
 
 
@@ -342,36 +366,10 @@ protected:
     FileLogger log(filename);
     log << str;
   }
-
-
-private:
-  tcp::resolver resolver_;
-  tcp::socket socket_;
-  boost::asio::streambuf request_buffer_;
-  boost::asio::streambuf response_buffer_;
-  std::string server_;
-  std::string path_;
-  std::ostringstream result_;
-  bool verbose_;
-  Response response_;
-  boost::function<void(const Response&)> after_get_response_;
 };
 
 
 
-
-std::ostream& operator<<(std::ostream& os, const HttpGetter::Response& response)
-{
-  os << response.http_version << " " << response.status_code << " " << response.status_message << std::endl;
-
-  for (std::map<std::string, std::string>::const_iterator i = response.header.begin(); i != response.header.end(); ++i)
-  {
-    os << i->first << ": " << i->second << std::endl;    
-  }
-
-  os << response.body << std::endl;
-  return os;
-}
 
 
 
