@@ -19,20 +19,21 @@ class WikiLinkGetter
 {
 public:
   WikiLinkGetter(boost::asio::io_service& io_service)
-    : http_getter_(io_service)
+    : io_service_(io_service)
+    , http_getter_(io_service)
     , server_("en.wikipedia.org")
     , path_("/w/api.php?action=query&format=json&prop=links&pllimit=max&titles=")
     , verbose_(false)
   {
     if (verbose_)
-      std::cout << this << " WikiLinkGetter::WikiLinkGetter()" << std::endl;    
+      std::cout << this << " WikiLinkGetter::WikiLinkGetter()" << std::endl;
   }
 
 
   virtual ~WikiLinkGetter()
   {
-    if (verbose_)    
-      std::cout << this << " WikiLinkGetter::~WikiLinkGetter()" << std::endl;      
+    if (verbose_)
+      std::cout << this << " WikiLinkGetter::~WikiLinkGetter()" << std::endl;
   }
 
 
@@ -42,6 +43,7 @@ public:
     link_path += link_title;
 
     links_set_.clear();
+    retry_ = 1;
     http_getter_.get( server_
                     , link_path
                     , ResponseToLinks( http_getter_
@@ -50,7 +52,8 @@ public:
                                      , link_title
                                      , links_set_
                                      , callback
-                                     , verbose_));
+                                     , verbose_)
+                    , ErrorHandler(retry_));
   }
 
 
@@ -68,7 +71,7 @@ public:
 protected:
   WikiLinkGetter();
   WikiLinkGetter(const WikiLinkGetter&);
-  WikiLinkGetter& operator=(const WikiLinkGetter&);  
+  WikiLinkGetter& operator=(const WikiLinkGetter&);
 
   struct ResponseToLinks
   {
@@ -99,19 +102,19 @@ protected:
       if (verbose_)
       {
         std::cout << this << " WikiLinkGetter::ResponseToLinks::~ResponseToLinks()" << std::endl;
-      }     
+      }
     }
 
 
-    void operator()(const HttpGetter::Response& r)
+    void operator()(const HttpResponse& r)
     {
       if (verbose_)
-        std::cout << this << " WikiLinkGetter::ResponseToLinks::operator()" << std::endl;   
+        std::cout << this << " WikiLinkGetter::ResponseToLinks::operator()" << std::endl;
 
       if (verbose_)
       {
         std::cout << r << std::endl;
-      }        
+      }
 
       std::istringstream json_stream(r.body);
       std::string plcontinue;
@@ -120,12 +123,23 @@ protected:
       {
         boost::property_tree::ptree pt;
         read_json(json_stream, pt);
-        
-        plcontinue = pt.get<std::string>("query-continue.links.plcontinue", "");        
 
+        plcontinue = pt.get<std::string>("query-continue.links.plcontinue", "");
+
+        if (verbose_)
+        {
+          std::cout << "plcontinue: '";
+
+          for (std::string::iterator c = plcontinue.begin(); c != plcontinue.end(); ++c)
+          {
+            std::cout << (*c);
+          }
+
+          std::cout <<  "'" << std::endl;
+        }
         pt = pt.get_child("query");
         pt = pt.get_child("pages");
-        
+
         for (boost::property_tree::ptree::iterator i = pt.begin(); i != pt.end(); ++i)
         {
           boost::property_tree::ptree links = i->second.get_child("links");
@@ -138,7 +152,7 @@ protected:
       }
       catch (std::runtime_error& e)
       {
-        
+
       }
 
       if (plcontinue.size())
@@ -150,7 +164,8 @@ protected:
                                          , link_path_
                                          , link_title_
                                          , links_set_
-                                         , after_response_));
+                                         , after_response_)
+                        , ErrorHandler());
       }
       else
       {
@@ -164,15 +179,34 @@ protected:
     std::string link_title_;
     std::set<std::string>& links_set_;
     boost::function<void(const std::set<std::string>&)> after_response_;
-    bool verbose_;    
+    bool verbose_;
+  };
+
+
+  struct ErrorHandler
+  {
+    ErrorHandler(unsigned retry = 0)
+    : retry_(retry)
+    {
+
+    }
+
+    void operator()(const boost::system::error_code& err)
+    {
+      std::cerr << "ErrorHandler::operator(): " << err << "\n";
+    }
+
+    unsigned retry_;
   };
 
 
 private:
+  boost::asio::io_service& io_service_;
   HttpGetter http_getter_;
   std::string server_;
   std::string path_;
   bool verbose_;
+  unsigned retry_;
   std::set<std::string> links_set_;
 };
 
