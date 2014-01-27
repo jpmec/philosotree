@@ -7,6 +7,8 @@
 #include "GenericSpiderWeb.hpp"
 
 
+
+
 class WikiLinkWeb : public GenericSpiderWeb<std::string>
 {
   typedef GenericSpiderWeb<std::string> super;
@@ -45,7 +47,7 @@ public:
   NodeSharedPtrList find(const std::string& from, const std::string& to) const
   {
     return super::find(from, to);
-  }   
+  }
 };
 
 
@@ -58,54 +60,70 @@ std::ostream& operator<<(std::ostream& os, const WikiLinkWeb& web)
 
   WikiLinkWeb::NodeSet::iterator i = nodes.begin();
 
-  for (; i != nodes.end(); ++i)
+  os << "{" << std::endl;
+
+  for (; i != nodes.end();)
   {
-    os << (*i)->c_str() << ": { ";
+    os << "\""<< (*i)->c_str() << "\"" << ": { ";
 
     WikiLinkWeb::DirectedGraph::const_iterator g = graph.find(*i);
 
     if (g != graph.end())
     {
       const WikiLinkWeb::NodeSet& from(g->second->first);
-
-      os << "from : { ";
-
       WikiLinkWeb::NodeSet::const_iterator f = from.begin();
+
+      const WikiLinkWeb::NodeSet& to(g->second->second);
+      WikiLinkWeb::NodeSet::const_iterator t = to.begin();
 
       if (f != from.end())
       {
-        os << (*f)->c_str();
+        os << "\"from\" : [ ";
+
+        os << "\"" << (*f)->c_str() << "\"";
 
         for (++f; f != from.end(); ++f)
         {
-          os << ", " << (*f)->c_str();
+          os << ", " << "\"" << (*f)->c_str() << "\"";
         }
-      }   
 
-      os << " }, ";
+        os << " ]";
 
-
-      const WikiLinkWeb::NodeSet& to(g->second->second);
-
-      os << "to : { ";
-
-      WikiLinkWeb::NodeSet::const_iterator t = to.begin();
+        if (t != to.end())
+        {
+          os << ", ";
+        }
+      }
 
       if (t != to.end())
       {
-        os << (*t)->c_str();
+        os << "\"to\" : [ ";
+
+        os << "\"" << (*t)->c_str() << "\"";
 
         for (++t; t != to.end(); ++t)
         {
-          os << ", " << (*t)->c_str();
+          os << ", " << "\"" << (*t)->c_str() << "\"";
         }
-      }    
 
-      os << " } ";      
+        os << " ]";
+      }
     }
 
-    os << " }" << std::endl;
+    os << " }";
+
+    ++i;
+    if (i != nodes.end())
+    {
+      os << "," << std::endl;
+    }
+    else
+    {
+      os << std::endl;
+    }
   }
+
+  os << "}" << std::endl;
 
   return os;
 }
